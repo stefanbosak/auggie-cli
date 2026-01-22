@@ -98,8 +98,8 @@ This repository provides a fully <span style="color: #0969da;">**containerized**
 ### <span style="color: #8250df;">Configuration Files</span>
 | File | Description |
 |------|-------------|
-| [`settings.json`](./augment/settings.json) | <span style="color: #0969da;">Auggie CLI configuration</span> |
-| [`.env`](./augment/.env) | <span style="color: #1a7f37;">Environment variables</span> |
+| [`settings.json`](./.augment/settings.json) | <span style="color: #0969da;">Auggie CLI configuration</span> |
+| [`.env`](./.augment/.env) | <span style="color: #1a7f37;">Environment variables</span> |
 
 ### <span style="color: #0969da;">Docker & Build</span>
 | File | Description |
