@@ -1,0 +1,74 @@
+{
+  "model": "sonnet4.5",
+  "indexingAllowDirs": [
+    "/workspace"
+  ],
+  "mcpServers": {
+    "postgres": {
+      "command": "/usr/local/bin/toolbox",
+      "args": [
+        "--prebuilt",
+        "postgres",
+        "--stdio"
+      ],
+      "env": {
+        "POSTGRES_HOST": "",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_DATABASE": "testdb",
+        "POSTGRES_USER": "testuser",
+        "POSTGRES_PASSWORD": "testpassword"
+      }
+    },
+    "sequentialthinking": {
+      "command": "/usr/local/bin/mcp-server-sequential-thinking",
+      "args": []
+    },
+    "ref": {
+      "type": "http",
+      "url": "https://api.ref.tools/mcp?apiKey=<REF_API_TOKEN>",
+      "headers": {}
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/readonly",
+      "headers": {
+        "X-MCP-Toolsets": "repos,issues,users,pull_requests",
+        "Authorization": "Bearer <GH_TOKEN>"
+      },
+      "tools": [
+        "*"
+      ]
+    },
+    "fetch": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--network=host",
+        "mcp/fetch"
+      ]
+    },
+    "time": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--network=host",
+        "-e",
+        "LOCAL_TIMEZONE",
+        "mcp/time"
+      ]
+    },
+    "grafana-tst": {
+      "type": "sse",
+      "url": "https://grafana-mcp.tst.domain.tld/sse"
+    },
+    "grafana-prd": {
+      "type": "sse",
+      "url": "https://grafana-mcp.prd.domain.tld/sse"
+    }
+  },
+  "autoUpdate": false
+}

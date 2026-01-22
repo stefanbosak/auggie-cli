@@ -1,0 +1,2 @@
+# Python repository (allow to install newer versions within distribution)
+deb [signed-by=/usr/share/keyrings/deadsnakes.gpg] http://ppa.launchpad.net/deadsnakes/ppa/ubuntu noble main

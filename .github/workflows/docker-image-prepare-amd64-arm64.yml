@@ -1,0 +1,104 @@
+name: 'Prepare multi-platform Docker images'
+run-name: '${{ github.ref_type }}_${{ github.ref_name }}@${{ github.triggering_actor }}'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  schedule:
+    - cron: "45 21 * * *"
+  workflow_dispatch:
+   inputs:
+      DOCKER_GUID:
+        description: 'DOCKER_GID (number)'
+        required: false
+        type: string
+      CONTAINER_TAG:
+        description: 'CONTAINER_TAG (text)'
+        required: false
+        type: string
+
+env:
+  GH_REGISTRY: ghcr.io
+  DH_REGISTRY: docker.io
+  CONTAINER_TAG: initial
+  DOCKER_GID: 119
+
+jobs:
+  docker-build-test-tag-push:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner: [ubuntu-latest]
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@main
+      - name: 'Set parameters to GITHUB_ENV'
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ github.event.inputs.DOCKER_GID }}" != "" ]]; then
+              echo "DOCKER_GID=${{ github.event.inputs.DOCKER_GID }}" >> ${GITHUB_ENV}
+            fi
+            if [[ "${{ github.event.inputs.CONTAINER_TAG }}" != "" ]]; then
+              echo "CONTAINER_TAG=${{ github.event.inputs.CONTAINER_TAG }}" >> ${GITHUB_ENV}
+            fi
+          fi
+          echo "GITHUB_ENV:"
+          cat ${GITHUB_ENV}
+      - name: 'Set up QEMU (arm64)'
+        uses: docker/setup-qemu-action@master
+        with:
+          platforms: linux/arm64
+      - name: 'Set up Docker buildx'
+        uses: docker/setup-buildx-action@master
+        with:
+          version: latest
+          driver-opts: |
+            network=host
+            image=moby/buildkit:master
+      - name: 'Login to GitHub Container Registry'
+        uses: docker/login-action@master
+        with:
+          registry: ${{ env.GH_REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GH_TOKEN }}
+          ecr: false
+          logout: true
+      - name: 'Login to DockerHub Container Registry'
+        uses: docker/login-action@master
+        with:
+          registry: ${{ env.DH_REGISTRY }}
+          username: ${{ secrets.DH_USER }}
+          password: ${{ secrets.DH_TOKEN }}
+          ecr: false
+          logout: true
+      - name: 'Clean old containers'
+        uses: actions/delete-package-versions@main
+        with:
+          owner: ${{ github.repository_owner }}
+          package-name: ${{ github.event.repository.name }}
+          package-type: 'container'
+          token: ${{ secrets.GH_TOKEN }}
+          min-versions-to-keep: 3
+      - name: 'Build, tag and push multi-platforms Docker images to preconfigured container registries'
+        uses: docker/build-push-action@master
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: |
+            DOCKER_GID=${{ env.DOCKER_GID }}
+          push: true
+          provenance: false
+          no-cache: false
+          github-token: ${{ secrets.GH_TOKEN }}
+          secrets: |
+            GIT_AUTH_TOKEN=${{ secrets.GH_TOKEN }}
+          tags: |
+            ${{ secrets.DH_USER }}/${{ github.event.repository.name }}:${{ env.CONTAINER_TAG }}
+            ${{ env.GH_REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ env.CONTAINER_TAG }}
+          platforms: linux/amd64,linux/arm64
