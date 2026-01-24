@@ -2,7 +2,7 @@
 
 # 🤖 AugmentCode Auggie CLI
 
-**Sandboxed Docker Container for AugmentCode Auggie CLI with MCP Support**
+**Containerized AugmentCode Auggie CLI (Hardened)**
 
 ![Build Status](https://github.com/stefanbosak/auggie-cli/actions/workflows/docker-image-prepare-amd64-arm64.yml/badge.svg)
 [![Auggie](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/augmentcode/auggie)
