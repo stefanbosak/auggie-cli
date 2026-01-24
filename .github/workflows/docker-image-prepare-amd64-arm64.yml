@@ -69,7 +69,7 @@ jobs:
           password: ${{ secrets.DH_TOKEN }}
           ecr: false
           logout: true
-      - name: 'Clean old containers in GitHub Container Registry''
+      - name: 'Clean old containers in GitHub Container Registry'
         uses: actions/delete-package-versions@main
         with:
           owner: ${{ github.repository_owner }}
