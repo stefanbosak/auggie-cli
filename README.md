@@ -128,6 +128,6 @@ This repository provides a fully <span style="color: #0969da;">**containerized**
 
 <div align="center">
 
-<span style="color: #8250df;">**Made with ❤️ to improve efficiency**</span>
+<span style="color: #8250df;">**Made with ❤ for ⚡ efficiency and 🔒 security**</span>
 
 </div>
