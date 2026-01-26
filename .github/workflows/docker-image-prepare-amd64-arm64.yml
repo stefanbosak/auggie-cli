@@ -40,6 +40,7 @@ jobs:
               echo "CONTAINER_TAG=${{ github.event.inputs.CONTAINER_TAG }}" >> ${GITHUB_ENV}
             fi
           fi
+          echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | cut -d'/' -f2)" >> ${GITHUB_ENV}
           echo "GITHUB_ENV:"
           cat ${GITHUB_ENV}
       - name: 'Set up QEMU (arm64)'
@@ -73,7 +74,7 @@ jobs:
         uses: actions/delete-package-versions@main
         with:
           owner: ${{ github.repository_owner }}
-          package-name: ${{ github.event.repository.name }}
+          package-name: ${{ env.REPOSITORY_NAME }}
           package-type: 'container'
           token: ${{ secrets.GH_TOKEN }}
           min-versions-to-keep: 3
@@ -82,7 +83,7 @@ jobs:
         with:
           username: ${{ secrets.DH_USER }}
           password: ${{ secrets.DH_TOKEN }}
-          repositories:  ${{ github.event.repository.name }}
+          repositories: ${{ env.REPOSITORY_NAME }}
           sha-retention-days: 15
           dry-run: false
       - name: 'Build, tag and push multi-platforms Docker images to preconfigured container registries'
@@ -97,6 +98,6 @@ jobs:
           secrets: |
             GIT_AUTH_TOKEN=${{ secrets.GH_TOKEN }}
           tags: |
-            ${{ secrets.DH_USER }}/${{ github.event.repository.name }}:${{ env.CONTAINER_TAG }}
-            ${{ env.GH_REGISTRY }}/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ env.CONTAINER_TAG }}
+            ${{ secrets.DH_USER }}/${{ env.REPOSITORY_NAME }}:${{ env.CONTAINER_TAG }}
+            ${{ env.GH_REGISTRY }}/${{ github.repository_owner }}/${{ env.REPOSITORY_NAME }}:${{ env.CONTAINER_TAG }}
           platforms: linux/amd64,linux/arm64

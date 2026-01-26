@@ -14,4 +14,4 @@ fi
 
 export TARGETPLATFORM=${TARGETPLATFORM:-"${TARGETOS}/${TARGETARCH}"}
 
-docker buildx build --provenance=false --sbom=false --no-cache --push --platform "${TARGETPLATFORM}" -t ghcr.io/stefanbosak/auggie-cli:initial .
+docker buildx build --network=host --force-rm --rm --provenance=false --sbom=false --no-cache --push --platform "${TARGETPLATFORM}" -t ghcr.io/stefanbosak/auggie-cli:initial .
