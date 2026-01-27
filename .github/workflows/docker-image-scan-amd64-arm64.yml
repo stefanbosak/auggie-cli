@@ -9,22 +9,16 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-on-linux:
+  scan-on-linux:
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
         runner: [ubuntu-latest, ubuntu-24.04-arm]
     permissions:
       contents: read
-      packages: write
-    container:
-      image: docker.io/developmententity/auggie-cli:initial
-      options:
-        -v /dev:/dev
-        -u root
-
+      packages: read
     steps:
-     - name: 'Run Trivy scan'
+      - name: 'Run Trivy scan'
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'docker.io/developmententity/auggie-cli:initial'
