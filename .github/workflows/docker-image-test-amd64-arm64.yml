@@ -1,0 +1,31 @@
+name: 'Test multi-platform Docker images'
+run-name: '${{ github.ref_type }}_${{ github.ref_name }}@${{ github.triggering_actor }}'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-on-linux:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    permissions:
+      contents: read
+      packages: write
+    container:
+      image: docker.io/developmententity/auggie-cli:initial
+      options:
+        -v /dev:/dev
+        -u root
+
+    steps:
+      - name: 'Docker image test'
+        shell: bash
+        run: |
+          echo -ne "AUGGIE_CLI_VERSION="
+          auggie --version | awk '{print $1}' | head -n 1
