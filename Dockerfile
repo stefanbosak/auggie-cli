@@ -59,8 +59,8 @@ RUN apt-get update \
 RUN if [ "${TARGETARCH}" = "amd64" ]; then \
   TOOLBOX_VERSION=$(git ls-remote --refs --sort='version:refname' \
       --tags "https://github.com/googleapis/genai-toolbox" \
-      | awk -F"/" '!($0 ~ /alpha|beta|rc|dev|None|list|nightly|\{/) \
-        {print $NF}' | tail -n 1) \
+      | grep -vE 'alpha|beta|rc|dev|None|list|nightly|\{' | cut -d'/' -f3 \
+      | tail -n 1) \
   && curl -sSL -o "/usr/local/bin/toolbox" \
       "https://storage.googleapis.com/genai-toolbox/${TOOLBOX_VERSION}/${TARGETOS}/${TARGETARCH}/toolbox" \
   && chmod +x "/usr/local/bin/toolbox"; \
