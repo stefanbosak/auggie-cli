@@ -1,4 +1,4 @@
-name: 'Test multi-platform Docker images'
+name: 'Scan multi-platform Docker images'
 run-name: '${{ github.ref_type }}_${{ github.ref_name }}@${{ github.triggering_actor }}'
 
 concurrency:
