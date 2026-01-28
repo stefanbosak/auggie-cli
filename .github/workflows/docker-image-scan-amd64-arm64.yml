@@ -27,12 +27,12 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM,LOW'
           exit-code: '0'
           version: 'latest'
-          output: 'scan-report.txt'
+          output: scan-report-${{ matrix.runner }}.json
       - name: 'Store scan report as artifact'
         uses: actions/upload-artifact@main
         with:
           name: scan-report-${{ matrix.runner }}
-          path: scan-report.txt
+          path: scan-report-${{ matrix.runner }}.json
           retention-days: 7
           overwrite: true
           compression-level: 0
