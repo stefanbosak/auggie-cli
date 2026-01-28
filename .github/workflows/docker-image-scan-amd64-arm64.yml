@@ -22,8 +22,17 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'docker.io/developmententity/auggie-cli:initial'
-          format: 'table'
+          format: 'json'
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH,MEDIUM,LOW'
           exit-code: '0'
           version: 'latest'
+          output: 'scan-report.txt'
+      - name: 'Store scan report as artifact'
+        uses: actions/upload-artifact@main
+        with:
+          name: scan-report-${{ matrix.runner }}
+          path: scan-report.txt
+          retention-days: 7
+          overwrite: true
+          compression-level: 0
