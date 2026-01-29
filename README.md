@@ -96,10 +96,12 @@ This repository provides a fully <span style="color: #0969da;">**containerized**
 ## 📁 Repository Structure
 
 ### <span style="color: #8250df;">Configuration Files</span>
-| File | Description |
-|------|-------------|
-| [`settings.json`](./.augment/settings.json) | <span style="color: #0969da;">Auggie CLI configuration</span> |
-| [`.env`](./.augment/.env) | <span style="color: #1a7f37;">Environment variables</span> |
+| File | Description | Note |
+|------|-------------|------|
+| [`settings.json`](./.augment/settings.json) | <span style="color: #0969da;">Auggie CLI configuration</span> | |
+| [`.env`](./.augment/.env) | <span style="color: #1a7f37;">Environment variables</span> | |
+| [`commands`](./.augment/commands) | <span style="color: #1a7f37;">Commands</span> | [docs](https://docs.augmentcode.com/cli/custom-commands) |
+| [`rules`](./.augment/rules) | <span style="color: #1a7f37;">Rules</span> | [docs](https://docs.augmentcode.com/cli/rules) |
 
 ### <span style="color: #0969da;">Docker & Build</span>
 | File | Description |
