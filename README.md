@@ -129,6 +129,20 @@ This repository provides a fully <span style="color: #0969da;">**containerized**
 
 ---
 
+## 📊 Star History
+
+<a href="https://www.star-history.com/#x1xhlol/system-prompts-and-models-of-ai-tools&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=stefanbosak/auggie-cli&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=stefanbosak/auggie-cli&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=stefanbosak/auggie-cli&type=Date" />
+  </picture>
+</a>
+
+⭐ **Feel free to drop a star if you find this useful.**
+
+---
+
 <div align="center">
 
 <span style="color: #8250df;">**Made with ❤ for ⚡ efficiency and 🔒 security**</span>
