@@ -20,6 +20,7 @@ This repository provides a fully <span style="color: #0969da;">**containerized**
 ### 📚 Resources
 
 - 📖 [Official Documentation](https://docs.augmentcode.com/cli/overview)
+- 📖 [AI models database](https://models.dev)
 - 🤖 **Supported AI Models**: Haiku/Sonet/Opus 4.5, GPT 5.2 
   - **Recommended**:
     - <span style="color: #8250df;">**Claude Sonet-4.5**</span> - [Documentation](https://www.anthropic.com/claude/sonnet)
