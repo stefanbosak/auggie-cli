@@ -112,12 +112,6 @@ This repository provides a fully <span style="color: #0969da;">**containerized**
 | [`auggie.sh`](./auggie.sh) | <span style="color: #1a7f37;">Execution wrapper script</span> |
 | [`act.sh`](./act.sh) | <span style="color: #1a7f37;">Act tool script</span> |
 
-### <span style="color: #d73a49;">Dependencies</span>
-| File | Description |
-|------|-------------|
-| [`deadsnakes.gpg`](./deadsnakes.gpg) | GPG key for deadsnakes PPA |
-| [`deadsnakes.list`](./deadsnakes.list) | APT source list for Python repository |
-
 
 ## 🐳 Container Images
 
