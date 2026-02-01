@@ -8,6 +8,10 @@ concurrency:
 on:
   workflow_dispatch:
 
+env:
+  DH_REGISTRY: docker.io
+  CONTAINER_TAG: initial
+
 jobs:
   scan-on-linux:
     runs-on: ${{ matrix.runner }}
@@ -18,10 +22,18 @@ jobs:
       contents: read
       packages: read
     steps:
+      - name: 'Checkout'
+        uses: actions/checkout@main
+      - name: 'Set parameters to GITHUB_ENV'
+        shell: bash
+        run: |
+          echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | cut -d'/' -f2)" >> ${GITHUB_ENV}
+          echo "GITHUB_ENV:"
+          cat ${GITHUB_ENV}
       - name: 'Run Trivy scan'
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'docker.io/developmententity/auggie-cli:initial'
+          image-ref: '${{ env.DH_REGISTRY }}/${{ secrets.DH_USER }}/${{ env.REPOSITORY_NAME }}:${{ env.CONTAINER_TAG }}'
           format: 'json'
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH,MEDIUM,LOW'
