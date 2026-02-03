@@ -2,7 +2,7 @@ name: 'Prepare multi-platform Docker images'
 run-name: '${{ github.ref_type }}_${{ github.ref_name }}@${{ github.triggering_actor }}'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 on:
@@ -18,6 +18,7 @@ on:
 env:
   GH_REGISTRY: ghcr.io
   DH_REGISTRY: docker.io
+  DHI_REGISTRY: dhi.io
   CONTAINER_TAG: initial
 
 jobs:
@@ -66,6 +67,14 @@ jobs:
         uses: docker/login-action@master
         with:
           registry: ${{ env.DH_REGISTRY }}
+          username: ${{ secrets.DH_USER }}
+          password: ${{ secrets.DH_TOKEN }}
+          ecr: false
+          logout: true
+      - name: 'Login to DockerHub Container Hardened Registry'
+        uses: docker/login-action@master
+        with:
+          registry: ${{ env.DHI_REGISTRY }}
           username: ${{ secrets.DH_USER }}
           password: ${{ secrets.DH_TOKEN }}
           ecr: false

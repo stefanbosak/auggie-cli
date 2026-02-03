@@ -10,7 +10,7 @@ auggie() {
   # extract Docker GID from the system
   export DOCKER_GID=$(getent group docker | cut -d: -f3)
 
-  docker run -it --rm \
+  docker run -it --rm --cpus 4 --memory 1G \
     --group-add "${DOCKER_GID}" \
     --env-file "${HOME}/.augment/.env" \
     -v /var/run/docker.sock:/var/run/docker.sock \
