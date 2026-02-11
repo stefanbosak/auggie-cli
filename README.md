@@ -21,10 +21,17 @@ This repository provides a fully <span style="color: #0969da;">**containerized**
 
 - 📖 [Official Documentation](https://docs.augmentcode.com/cli/overview)
 - 📖 [AI models database](https://models.dev)
-- 🤖 **Supported AI Models**: Haiku/Sonet/Opus 4.5, GPT 5.2 
-  - **Recommended**:
+- 🤖 **Supported AI Models**: Haiku/Sonet 4.5, Opus 4.6, GPT 5.2
+  - **Recommended models**:
     - <span style="color: #8250df;">**Claude Sonet-4.5**</span> - [Documentation](https://www.anthropic.com/claude/sonnet)
-    - <span style="color: #a371f7;">**Claude Opus-4.5**</span> - [Documentation](https://www.anthropic.com/claude/opus)
+    - <span style="color: #a371f7;">**Claude Opus-4.6**</span> - [Documentation](https://www.anthropic.com/claude/opus)
+  - **Effective Prompting**:
+    - Save output to prevent data loss (reduce costs)
+    - Iteratively processing excessively long messages (drop error rate ~<10%)
+    - XML tags ensure structural clarity (compliance increase to ~>98 %)
+    - Validate continuously (maintain ~>95% accuracy)
+    - Instruct what to avoid, not what to do (significantly reduce hallucination by ~>60 %)
+    - Contextualize personas (~<15 % improvement using personas)
 
 ### ⚠️ Important Notices
 
@@ -126,7 +133,7 @@ This repository provides a fully <span style="color: #0969da;">**containerized**
 
 ## 📊 Star History
 
-<a href="https://www.star-history.com/#x1xhlol/system-prompts-and-models-of-ai-tools&Date">
+<a href="https://www.star-history.com/#stefanbosak/auggie-cli&Date">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=stefanbosak/auggie-cli&type=Date&theme=dark" />
     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=stefanbosak/auggie-cli&type=Date" />
