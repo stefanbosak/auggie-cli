@@ -22,7 +22,7 @@ env:
   CONTAINER_TAG: initial
 
 jobs:
-  docker-build-test-tag-push:
+  docker-build-tag-push:
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
@@ -41,6 +41,7 @@ jobs:
               echo "CONTAINER_TAG=${{ github.event.inputs.CONTAINER_TAG }}" >> ${GITHUB_ENV}
             fi
           fi
+          echo "TIMESTAMP=$(git log -1 --format=%cI)" >> ${GITHUB_ENV}
           echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | cut -d'/' -f2)" >> ${GITHUB_ENV}
           echo "GITHUB_ENV:"
           cat ${GITHUB_ENV}
@@ -107,6 +108,11 @@ jobs:
           secrets: |
             GIT_AUTH_TOKEN=${{ secrets.GH_TOKEN }}
           tags: |
-            ${{ secrets.DH_USER }}/${{ env.REPOSITORY_NAME }}:${{ env.CONTAINER_TAG }}
-            ${{ env.GH_REGISTRY }}/${{ github.repository_owner }}/${{ env.REPOSITORY_NAME }}:${{ env.CONTAINER_TAG }}
+            ${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ env.CONTAINER_TAG }}
+            ${{ env.DH_REGISTRY }}/${{ secrets.DH_USER }}/${{ env.REPOSITORY_NAME }}:${{ env.CONTAINER_TAG }}
+          labels: |
+            org.opencontainers.image.created=${{ env.TIMESTAMP }}
+            org.opencontainers.image.authors=${{ github.repository_owner }}
+            org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           platforms: linux/amd64,linux/arm64
