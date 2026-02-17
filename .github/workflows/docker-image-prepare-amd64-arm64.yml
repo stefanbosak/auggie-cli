@@ -28,7 +28,7 @@ jobs:
       matrix:
         runner: [ubuntu-latest]
     permissions:
-      contents: write
+      contents: read
       packages: write
     steps:
       - name: 'Checkout'
@@ -61,7 +61,7 @@ jobs:
         with:
           registry: ${{ env.GH_REGISTRY }}
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GH_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
           ecr: false
           logout: true
       - name: 'Login to DockerHub Container Registry'
@@ -86,15 +86,16 @@ jobs:
           owner: ${{ github.repository_owner }}
           package-name: ${{ env.REPOSITORY_NAME }}
           package-type: 'container'
-          token: ${{ secrets.GH_TOKEN }}
-          min-versions-to-keep: 3
+          token: ${{ secrets.GITHUB_TOKEN }}
+          delete-only-untagged-versions: 'true'
+          min-versions-to-keep: 2
       - name: 'Clean old containers in DockerHub Container Registry'
         uses: lostlink/docker-cleanup@main
         with:
           username: ${{ secrets.DH_USER }}
           password: ${{ secrets.DH_TOKEN }}
           repositories: ${{ env.REPOSITORY_NAME }}
-          sha-retention-days: 15
+          sha-retention-days: 5
           dry-run: false
       - name: 'Build, tag and push multi-platforms Docker images to preconfigured container registries'
         uses: docker/build-push-action@master
@@ -104,9 +105,9 @@ jobs:
           push: true
           provenance: false
           no-cache: false
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           secrets: |
-            GIT_AUTH_TOKEN=${{ secrets.GH_TOKEN }}
+            GIT_AUTH_TOKEN=${{ secrets.GITHUB_TOKEN }}
           tags: |
             ${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ env.CONTAINER_TAG }}
             ${{ env.DH_REGISTRY }}/${{ secrets.DH_USER }}/${{ env.REPOSITORY_NAME }}:${{ env.CONTAINER_TAG }}
@@ -116,3 +117,5 @@ jobs:
             org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           platforms: linux/amd64,linux/arm64
+          outputs: |
+            type=image,compression=gzip,compression-level=3,force-compression=true
