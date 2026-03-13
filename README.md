@@ -21,10 +21,11 @@ This repository provides a fully <span style="color: #0969da;">**containerized**
 
 - 📖 [Official Documentation](https://docs.augmentcode.com/cli/overview)
 - 📖 [AI models database](https://models.dev)
-- 🤖 **Supported AI Models**: Haiku/Sonet 4.5, Opus 4.6, GPT 5.2
+- 🤖 **Supported AI Models**: Haiku, Sonnet, Opus, GPT 5.4
   - **Recommended models**:
-    - <span style="color: #8250df;">**Claude Sonet-4.5**</span> - [Documentation](https://www.anthropic.com/claude/sonnet)
-    - <span style="color: #a371f7;">**Claude Opus-4.6**</span> - [Documentation](https://www.anthropic.com/claude/opus)
+    - <span style="color: #8250df;">**Anthropic Claude Sonnet**</span> - [Documentation](https://www.anthropic.com/claude/sonnet): Low, Medium, High
+    - <span style="color: #a371f7;">**Anthripic Claude Opus**</span> - [Documentation](https://www.anthropic.com/claude/opus): Normal (Low, Medium, High), Fast (Low, Medium, High)
+    - <span style="color: #a371f7;">**OpenAI GPT 5.4**</span> - [Documentation](https://openai.com/index/introducing-gpt-5-4/): Low, Medium, High, Extra High
   - **Effective Prompting**:
     - Save output to prevent data loss (reduce costs)
     - Iteratively processing excessively long messages (drop error rate ~<10%)
