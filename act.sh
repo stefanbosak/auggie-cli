@@ -20,4 +20,10 @@ for tool in ${TOOLS}; do
 done
 
 # perform preparation job in dry-run mode
-time act workflow_dispatch -W "${cwd}/.github/workflows/docker-image-prepare-amd64-arm64.yml" -s DH_USER=$(cat ~/DHUser.txt) -s DH_TOKEN=$(cat ~/DHToken.txt) -s GH_TOKEN=$(cat ~/GHToken.txt) -j docker-build-test-tag-push -a "${USER}" --container-options "-v /dev/:/dev" -n
+#time act workflow_dispatch -W "${cwd}/.github/workflows/docker-image-prepare-amd64-arm64.yml" -s DH_USER=$(cat ~/DHUser.txt) -s DH_TOKEN=$(cat ~/DHToken.txt) -s GITHUB_TOKEN=$(cat ~/GHToken.txt) -j docker-build-tag-push -a "${USER}" --container-options "-v /dev/:/dev" -n
+
+# perform test job in dry-run mode
+#time act workflow_dispatch -W "${cwd}/.github/workflows/docker-image-test-amd64-arm64.yml" -s DH_USER=$(cat ~/DHUser.txt) -s DH_TOKEN=$(cat ~/DHToken.txt) -s GITHUB_TOKEN=$(cat ~/GHToken.txt) -j test-on-linux -a "${USER}" --container-options "-v /dev/:/dev" -n
+
+# perform scan job in dry-run mode
+#time act workflow_dispatch -W "${cwd}/.github/workflows/docker-image-scan-amd64-arm64.yml" -s DH_USER=$(cat ~/DHUser.txt) -s DH_TOKEN=$(cat ~/DHToken.txt) -s GITHUB_TOKEN=$(cat ~/GHToken.txt) -j scan-on-linux -a "${USER}" --container-options "-v /dev/:/dev" -n
