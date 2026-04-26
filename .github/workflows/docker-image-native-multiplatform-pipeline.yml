@@ -1,0 +1,442 @@
+
+name: 'Native: prepare → test → scan'
+run-name: 'Native: ${{ github.ref_type }}_${{ github.ref_name }}@${{ github.triggering_actor }}'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+on:
+  repository_dispatch:
+    types: [new-release]
+  workflow_dispatch:
+    inputs:
+      CONTAINER_TAG:
+        description: 'CONTAINER_TAG (text)'
+        required: false
+        type: string
+
+env:
+  GH_REGISTRY: ghcr.io
+  DH_REGISTRY: docker.io
+  DHI_REGISTRY: dhi.io
+  CONTAINER_TAG: initial
+
+jobs:
+  prepare:
+    name: 'Preparation, cleanup'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      REPOSITORY_NAME: ${{ steps.params.outputs.REPOSITORY_NAME }}
+      REPOSITORY_DESCRIPTION: ${{ steps.params.outputs.REPOSITORY_DESCRIPTION }}
+      CONTAINER_TAG: ${{ steps.params.outputs.CONTAINER_TAG }}
+      TIMESTAMP: ${{ steps.params.outputs.TIMESTAMP }}
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@main
+
+      - name: 'Get repository description'
+        id: repo
+        uses: stefanbosak/gh-actions/get-repo-description@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 'Set parameters to GITHUB_ENV and GITHUB_OUTPUT'
+        id: params
+        shell: bash
+        run: |
+          CONTAINER_TAG="${{ env.CONTAINER_TAG }}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ github.event.inputs.CONTAINER_TAG }}" != "" ]]; then
+              CONTAINER_TAG="${{ github.event.inputs.CONTAINER_TAG }}"
+            fi
+          fi
+          REPOSITORY_NAME="$(echo '${{ github.repository }}' | cut -d'/' -f2)"
+          REPOSITORY_DESCRIPTION="${{ steps.repo.outputs.description }}"
+          TIMESTAMP="$(git log -1 --format=%cI)"
+          echo "CONTAINER_TAG=${CONTAINER_TAG}" >> ${GITHUB_ENV}
+          echo "REPOSITORY_NAME=${REPOSITORY_NAME}" >> ${GITHUB_ENV}
+          echo "REPOSITORY_DESCRIPTION=${REPOSITORY_DESCRIPTION}" >> ${GITHUB_ENV}
+          echo "TIMESTAMP=${TIMESTAMP}" >> ${GITHUB_ENV}
+          echo "GITHUB_ENV:"
+          cat ${GITHUB_ENV}
+          echo "CONTAINER_TAG=${CONTAINER_TAG}" >> ${GITHUB_OUTPUT}
+          echo "REPOSITORY_NAME=${REPOSITORY_NAME}" >> ${GITHUB_OUTPUT}
+          echo "REPOSITORY_DESCRIPTION=${REPOSITORY_DESCRIPTION}" >> ${GITHUB_OUTPUT}
+          echo "TIMESTAMP=${TIMESTAMP}" >> ${GITHUB_OUTPUT}
+          echo "GITHUB_OUTPUT:"
+          cat ${GITHUB_OUTPUT}
+
+      - name: 'Cleanup ${{ env.GH_REGISTRY }} registry'
+        uses: actions/delete-package-versions@main
+        with:
+          owner: ${{ github.repository_owner }}
+          package-name: ${{ env.REPOSITORY_NAME }}
+          package-type: 'container'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          delete-only-untagged-versions: 'false'
+          min-versions-to-keep: 5
+
+      - name: 'Cleanup ${{ env.DH_REGISTRY }} registry'
+        uses: stefanbosak/gh-actions/cleanup-dockerhub-old-digests@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.run_id }}
+          ref-name: ${{ github.ref_name }}
+          dh-user: ${{ secrets.DH_USER }}
+          dh-token: ${{ secrets.DH_TOKEN }}
+          repository-name: ${{ env.REPOSITORY_NAME }}
+
+  build:
+    name: 'Build image (${{ matrix.platform_pair }})'
+    needs: prepare
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux/amd64
+            platform_pair: linux-amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            platform_pair: linux-arm64
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@main
+
+      - name: 'Set up Docker buildx'
+        uses: docker/setup-buildx-action@master
+        with:
+          version: latest
+          driver-opts: |
+            network=host
+            image=moby/buildkit:master
+
+      - name: 'Login to ${{ env.GH_REGISTRY }}'
+        uses: docker/login-action@master
+        with:
+          registry: ${{ env.GH_REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          ecr: false
+          logout: true
+
+      - name: 'Login to ${{ env.DH_REGISTRY }}'
+        uses: docker/login-action@master
+        with:
+          registry: ${{ env.DH_REGISTRY }}
+          username: ${{ secrets.DH_USER }}
+          password: ${{ secrets.DH_TOKEN }}
+          ecr: false
+          logout: true
+
+      - name: 'Login to ${{ env.DHI_REGISTRY }}'
+        uses: docker/login-action@master
+        with:
+          registry: ${{ env.DHI_REGISTRY }}
+          username: ${{ secrets.DH_USER }}
+          password: ${{ secrets.DH_TOKEN }}
+          ecr: false
+          logout: true
+
+      - name: 'Build, push image (no tag)'
+        id: build
+        uses: docker/build-push-action@master
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          provenance: false
+          no-cache: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          secrets: |
+            GIT_AUTH_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          labels: |
+            org.opencontainers.image.created=${{ needs.prepare.outputs.TIMESTAMP }}
+            org.opencontainers.image.description=${{ needs.prepare.outputs.REPOSITORY_DESCRIPTION }}
+            org.opencontainers.image.authors=${{ github.repository_owner }}
+            org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          platforms: ${{ matrix.platform }}
+          outputs: |
+            type=image,name=${{ env.GH_REGISTRY }}/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true,compression=gzip,compression-level=3,force-compression=true
+            type=image,name=${{ env.DH_REGISTRY }}/${{ secrets.DH_USER }}/${{ needs.prepare.outputs.REPOSITORY_NAME }},push-by-digest=true,name-canonical=true,push=true,compression=gzip,compression-level=3,force-compression=true
+
+      - name: 'Export digest to artifact'
+        shell: bash
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: 'Upload digest artifact'
+        uses: actions/upload-artifact@main
+        with:
+          name: digests-${{ matrix.platform_pair }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: 'Merge multi-platform manifests'
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: 'Download all digest artifacts'
+        uses: actions/download-artifact@main
+        with:
+          path: /tmp/digests
+          pattern: digests-linux-*
+          merge-multiple: true
+
+      - name: 'Set up Docker buildx'
+        uses: docker/setup-buildx-action@master
+        with:
+          version: latest
+          driver-opts: |
+            network=host
+            image=moby/buildkit:master
+
+      - name: 'Install cosign'
+        uses: sigstore/cosign-installer@main
+
+      - name: 'Login to ${{ env.GH_REGISTRY }}'
+        uses: docker/login-action@master
+        with:
+          registry: ${{ env.GH_REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          ecr: false
+          logout: true
+
+      - name: 'Login to ${{ env.DH_REGISTRY }}'
+        uses: docker/login-action@master
+        with:
+          registry: ${{ env.DH_REGISTRY }}
+          username: ${{ secrets.DH_USER }}
+          password: ${{ secrets.DH_TOKEN }}
+          ecr: false
+          logout: true
+
+      - name: 'Store multi-platform image in ${{ env.GH_REGISTRY }}'
+        shell: bash
+        run: |
+          docker buildx imagetools create \
+            -t ${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }} \
+            $(printf '${{ env.GH_REGISTRY }}/${{ github.repository }}@sha256:%s ' $(ls /tmp/digests))
+
+      - name: 'Sign multi-platform image index (${{ env.GH_REGISTRY }})'
+        shell: bash
+        run: |
+          IMAGE="${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }}"
+          DIGEST=$(docker buildx imagetools inspect "${IMAGE}" --format '{{json .}}' | jq -r '.manifest.digest')
+          cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      - name: 'Store multi-platform image in ${{ env.DH_REGISTRY }}'
+        shell: bash
+        run: |
+          docker buildx imagetools create \
+            -t ${{ env.DH_REGISTRY }}/${{ secrets.DH_USER }}/${{ needs.prepare.outputs.REPOSITORY_NAME }}:${{ needs.prepare.outputs.CONTAINER_TAG }} \
+            $(printf '${{ env.DH_REGISTRY }}/${{ secrets.DH_USER }}/${{ needs.prepare.outputs.REPOSITORY_NAME }}@sha256:%s ' $(ls /tmp/digests))
+
+      - name: 'Extract all stored digests'
+        shell: bash
+        run: |
+          JSON=$(docker buildx imagetools inspect ${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }} --format '{{json .}}')
+
+          ALL_DIGESTS=$(echo "${JSON}" | jq -r '
+            [
+              .manifest.digest,
+
+              (
+                .manifest.manifests[]
+                | select(.mediaType == "application/vnd.docker.distribution.manifest.v2+json")
+                | .digest
+              )
+            ]
+            | join(" ")
+          ')
+
+          echo "${ALL_DIGESTS}" > /tmp/digests-all.txt
+
+      - name: 'Upload extracted digests as artifact'
+        uses: actions/upload-artifact@main
+        with:
+          name: digests-all
+          path: /tmp/digests-all.txt
+          if-no-files-found: error
+          retention-days: 7
+
+  test:
+    name: 'Test image (${{ matrix.platform_pair }})'
+    needs: [prepare, merge]
+    if: success()
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux/amd64
+            platform_pair: linux-amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            platform_pair: linux-arm64
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      AUGGIE_CLI_VERSION: ${{ steps.test.outputs.AUGGIE_CLI_VERSION }}
+    steps:
+      - name: 'Install cosign'
+        uses: sigstore/cosign-installer@main
+
+      - name: 'Verify image signature (${{ env.DH_REGISTRY }})'
+        shell: bash
+        run: |
+          IMAGE="${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }}"
+          DIGEST=$(docker buildx imagetools inspect "${IMAGE}" --format '{{json .}}' | jq -r '.manifest.digest')
+          cosign verify \
+            --certificate-identity-regexp="https://github\.com/${{ github.repository }}/\.github/workflows/.*" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            "${IMAGE}@${DIGEST}"
+
+      - name: 'Run tests in Docker container'
+        id: test
+        shell: bash
+        run: |
+          AUGGIE_CLI_VERSION=$(docker run --rm \
+            -v /dev:/dev \
+            -u root \
+            ${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }} \
+            sh -c 'auggie --version | awk "{print \$1}"')
+          echo "AUGGIE_CLI_VERSION=${AUGGIE_CLI_VERSION}"
+          docker run --rm \
+            -v /dev:/dev \
+            -u root \
+            ${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }} \
+            sh -c 'v=$(docker --version | grep -oP "\d+\.\d+\.\d+(-\d+)?"); echo "DOCKER_CLI_VERSION=${v}";'
+          if [[ "${{ matrix.platform_pair }}" == "linux-amd64" ]]; then
+            echo "AUGGIE_CLI_VERSION=${AUGGIE_CLI_VERSION}" >> ${GITHUB_OUTPUT}
+          fi
+
+  scan:
+    name: 'Scan image (${{ matrix.platform_pair }})'
+    needs: [prepare, merge]
+    if: success()
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux/amd64
+            platform_pair: linux-amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            platform_pair: linux-arm64
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@main
+
+      - name: 'Install cosign'
+        uses: sigstore/cosign-installer@main
+
+      - name: 'Verify image signature (${{ env.DH_REGISTRY }})'
+        shell: bash
+        run: |
+          IMAGE="${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }}"
+          DIGEST=$(docker buildx imagetools inspect "${IMAGE}" --format '{{json .}}' | jq -r '.manifest.digest')
+          cosign verify \
+            --certificate-identity-regexp="https://github\.com/${{ github.repository }}/\.github/workflows/.*" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            "${IMAGE}@${DIGEST}"
+
+      - name: 'Run Trivy scan'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }}'
+          format: 'json'
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+          exit-code: '0'
+          version: 'latest'
+          output: scan-report-${{ matrix.runner }}.json
+
+      - name: 'Store scan report as artifact'
+        uses: actions/upload-artifact@main
+        with:
+          name: scan-report-${{ matrix.runner }}
+          path: scan-report-${{ matrix.runner }}.json
+          retention-days: 7
+          overwrite: true
+          compression-level: 0
+
+  update-readme:
+    name: 'Update README.md with version info'
+    needs: [prepare, test]
+    if: success() && github.event_name == 'repository_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@main
+
+      - name: 'Update README.md version section'
+        shell: bash
+        env:
+          AUGGIE_VERSION: ${{ needs.test.outputs.AUGGIE_CLI_VERSION }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_NUMBER: ${{ github.run_number }}
+          AUGGIE_CLI_RELEASE_VERSION: ${{ github.event.client_payload.tag }}
+        run: |
+          export UPDATED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          python3 << 'PYEOF'
+          import re, os
+          auggie_version = os.environ['AUGGIE_VERSION']
+          auggie_release_version = os.environ['AUGGIE_CLI_RELEASE_VERSION']
+          updated_at = os.environ['UPDATED_AT']
+          run_url = os.environ['RUN_URL']
+          run_number = os.environ['RUN_NUMBER']
+          new_section = (
+              "<!-- VERSION_INFO_START -->\n"
+              "| Component | Version |\n"
+              "|-----------|---------|\n"
+              f"| **AugmentCode Auggie CLI** | [`{auggie_version}`](https://github.com/augmentcode/auggie/releases/tag/{auggie_release_version}) |\n"
+              "\n"
+              f"> 🔄 Last updated: {updated_at} · [Build #{run_number}]({run_url})\n"
+              "<!-- VERSION_INFO_END -->"
+          )
+          with open('README.md', 'r') as f:
+              content = f.read()
+          pattern = r'<!-- VERSION_INFO_START -->.*?<!-- VERSION_INFO_END -->'
+          new_content = re.sub(pattern, new_section, content, flags=re.DOTALL)
+          with open('README.md', 'w') as f:
+              f.write(new_content)
+          print('README.md updated successfully')
+          PYEOF
+
+      - name: 'Commit and push README.md'
+        uses: stefanbosak/gh-actions/signed-verified-commit@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          signed-off: 'true'
+          commit-message: 'chore: update version info in README.md'
+          files: |
+            README.md
