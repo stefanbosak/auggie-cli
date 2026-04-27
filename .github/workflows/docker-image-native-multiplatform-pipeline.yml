@@ -418,7 +418,7 @@ jobs:
               "<!-- VERSION_INFO_START -->\n"
               "| Component | Version |\n"
               "|-----------|---------|\n"
-              f"| **AugmentCode Auggie CLI** | [`{auggie_version}`](https://github.com/augmentcode/auggie/releases/tag/{auggie_release_version}) |\n"
+              f"| **AugmentCode Auggie CLI** | [`{auggie_release_version}`](https://github.com/augmentcode/auggie/releases/tag/{auggie_release_version}) |\n"
               "\n"
               f"> 🔄 Last updated: {updated_at} · [Build #{run_number}]({run_url})\n"
               "<!-- VERSION_INFO_END -->"
