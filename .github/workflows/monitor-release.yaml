@@ -1,0 +1,23 @@
+name: 'Monitor release'
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+      timezone: 'Europe/Bratislava'
+  workflow_dispatch:
+
+jobs:
+  check-release:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write
+      actions: write
+
+    steps:
+      - name: 'Monitor release'
+        uses: stefanbosak/gh-actions/monitor-release@main
+        with:
+          projects: |
+            [
+              {"owner":"augmentcode","repo":"auggie","tagprefix":"v1"}
+            ]

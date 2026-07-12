@@ -1,0 +1,27 @@
+# GenAI Toolbox - PostgreSQL configuration
+# Reference: https://googleapis.github.io/genai-toolbox/resources/sources/postgres/
+
+kind: source
+name: test-source
+type: postgres
+host: ${POSTGRES_HOST}
+port: ${POSTGRES_PORT}
+database: ${POSTGRES_DATABASE}
+user: ${POSTGRES_USER}
+password: ${POSTGRES_PASSWORD}
+---
+kind: tool
+name: execute-sql
+type: postgres-sql
+source: test-source
+description: Execute any SQL query against the PostgreSQL database.
+statement: "{{.sql}}"
+templateParameters:
+  - name: sql
+    type: string
+    description: The SQL query to execute against the database.
+---
+kind: toolset
+name: test-toolset
+tools:
+  - execute-sql
