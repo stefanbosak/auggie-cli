@@ -2,7 +2,7 @@ name: 'Monitor release'
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '17 */2 * * *'
       timezone: 'Europe/Bratislava'
   workflow_dispatch:
 
