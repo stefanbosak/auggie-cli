@@ -1,6 +1,9 @@
-
 name: 'Native: prepare → test → scan'
 run-name: 'Native: ${{ github.ref_type }}_${{ github.ref_name }}@${{ github.triggering_actor }}'
+
+defaults:
+  run:
+    shell: bash
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -53,7 +56,6 @@ jobs:
 
       - name: 'Set parameters to GITHUB_ENV and GITHUB_OUTPUT'
         id: params
-        shell: bash
         env:
           CHANGES_JSON: ${{ toJson(github.event.client_payload.changes) }}
         run: |
@@ -85,15 +87,19 @@ jobs:
 
       - name: 'Check GHCR package exists'
         id: pkg-check
-        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          count=$(gh api "/user/packages/container/${{ env.REPOSITORY_NAME }}/versions" --jq 'length' 2> /dev/null || echo 0)
-          echo "count=$count" >> "${GITHUB_OUTPUT}"
+          if count=$(gh api "/user/packages/container/${{ env.REPOSITORY_NAME }}/versions" --jq 'length' 2>/dev/null); then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+            echo "count=${count}" >> "${GITHUB_OUTPUT}"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+            echo "count=0" >> "${GITHUB_OUTPUT}"
+          fi
 
       - name: 'Cleanup ${{ env.GH_REGISTRY }} registry'
-        if: steps.pkg-check.outputs.count != '0'
+        if: steps.pkg-check.outputs.exists == 'true' && steps.pkg-check.outputs.count != '0'
         uses: actions/delete-package-versions@main
         env:
           ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
@@ -110,11 +116,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          count=$(gh api "/user/packages/container/${{ env.REPOSITORY_NAME }}-cache/versions" --jq 'length' 2> /dev/null || echo 0)
-          echo "count=$count" >> "${GITHUB_OUTPUT}"
+          if count=$(gh api "/user/packages/container/${{ env.REPOSITORY_NAME }}-cache/versions" --jq 'length' 2>/dev/null); then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+            echo "count=${count}" >> "${GITHUB_OUTPUT}"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+            echo "count=0" >> "${GITHUB_OUTPUT}"
+          fi
 
       - name: 'Cleanup ${{ env.GH_REGISTRY }} registry'
-        if: steps.pkg-cache-check.outputs.count != '0'
+        if: steps.pkg-cache-check.outputs.exists == 'true' && steps.pkg-cache-check.outputs.count != '0'
         uses: actions/delete-package-versions@main
         env:
           ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
@@ -221,7 +232,6 @@ jobs:
             type=image,name=${{ env.DH_REGISTRY }}/${{ secrets.DH_USER }}/${{ needs.prepare.outputs.REPOSITORY_NAME }},push-by-digest=true,name-canonical=true,push=true,compression=gzip,compression-level=3,force-compression=true
 
       - name: 'Export digest to artifact'
-        shell: bash
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
@@ -273,28 +283,24 @@ jobs:
           logout: true
 
       - name: 'Store multi-platform image in ${{ env.GH_REGISTRY }}'
-        shell: bash
         run: |
           docker buildx imagetools create \
             -t ${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }} \
             $(printf '${{ env.GH_REGISTRY }}/${{ github.repository }}@sha256:%s ' $(ls /tmp/digests))
 
       - name: 'Sign multi-platform image index (${{ env.GH_REGISTRY }})'
-        shell: bash
         run: |
           IMAGE="${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }}"
           DIGEST=$(docker buildx imagetools inspect "${IMAGE}" --format '{{json .}}' | jq -r '.manifest.digest')
           cosign sign --yes "${IMAGE}@${DIGEST}"
 
       - name: 'Store multi-platform image in ${{ env.DH_REGISTRY }}'
-        shell: bash
         run: |
           docker buildx imagetools create \
             -t ${{ env.DH_REGISTRY }}/${{ secrets.DH_USER }}/${{ needs.prepare.outputs.REPOSITORY_NAME }}:${{ needs.prepare.outputs.CONTAINER_TAG }} \
             $(printf '${{ env.DH_REGISTRY }}/${{ secrets.DH_USER }}/${{ needs.prepare.outputs.REPOSITORY_NAME }}@sha256:%s ' $(ls /tmp/digests))
 
       - name: 'Extract all stored digests'
-        shell: bash
         run: |
           JSON=$(docker buildx imagetools inspect ${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }} --format '{{json .}}')
 
@@ -345,8 +351,16 @@ jobs:
       - name: 'Install cosign'
         uses: sigstore/cosign-installer@main
 
+      - name: 'Login to ${{ env.GH_REGISTRY }}'
+        uses: docker/login-action@master
+        with:
+          registry: ${{ env.GH_REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          ecr: false
+          logout: true
+
       - name: 'Verify image signature (${{ env.DH_REGISTRY }})'
-        shell: bash
         run: |
           IMAGE="${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }}"
           DIGEST=$(docker buildx imagetools inspect "${IMAGE}" --format '{{json .}}' | jq -r '.manifest.digest')
@@ -357,7 +371,6 @@ jobs:
 
       - name: 'Run tests in Docker container'
         id: test
-        shell: bash
         run: |
           AUGGIE_CLI_VERSION=$(docker run --rm \
             -v /dev:/dev \
@@ -399,8 +412,16 @@ jobs:
       - name: 'Install cosign'
         uses: sigstore/cosign-installer@main
 
+      - name: 'Login to ${{ env.GH_REGISTRY }}'
+        uses: docker/login-action@master
+        with:
+          registry: ${{ env.GH_REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          ecr: false
+          logout: true
+
       - name: 'Verify image signature (${{ env.DH_REGISTRY }})'
-        shell: bash
         run: |
           IMAGE="${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }}"
           DIGEST=$(docker buildx imagetools inspect "${IMAGE}" --format '{{json .}}' | jq -r '.manifest.digest')
@@ -441,7 +462,6 @@ jobs:
         uses: actions/checkout@main
 
       - name: 'Update README.md version section'
-        shell: bash
         env:
           AUGGIE_VERSION: ${{ needs.test.outputs.AUGGIE_CLI_VERSION }}
           AUGGIE_CLI_RELEASE_VERSION: ${{ needs.prepare.outputs.AUGGIE_CLI_RELEASE_VERSION }}
