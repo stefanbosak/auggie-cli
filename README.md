@@ -19,7 +19,7 @@
 |-----------|---------|
 | **AugmentCode Auggie CLI** | [`1.0.58`](https://github.com/augmentcode/auggie/releases/tag/v1.0.58) |
 
-> 🔄 Last updated: 2026-07-26T10:52:55Z · [Build #80](https://github.com/stefanbosak/auggie-cli/actions/runs/30198997267)
+> 🔄 Last updated: 2026-07-26T18:40:08Z · [Build #81](https://github.com/stefanbosak/auggie-cli/actions/runs/30215112204)
 <!-- VERSION_INFO_END -->
 
 ---
