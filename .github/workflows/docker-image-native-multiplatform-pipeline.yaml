@@ -18,7 +18,7 @@ on:
         description: 'AUGGIE_CLI_VERSION'
         required: false
         type: string
-        default: '1.0.70'
+        default: '1.0.71'
       CONTAINER_TAG:
         description: 'CONTAINER_TAG (text)'
         required: false
