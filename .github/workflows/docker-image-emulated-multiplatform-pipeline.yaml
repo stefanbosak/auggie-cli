@@ -274,16 +274,8 @@ jobs:
             -v /dev:/dev \
             -u root \
             ${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }} \
-            sh -c 'auggie --version | awk "{print \$1}"')
-          echo "AUGGIE_CLI_VERSION=${AUGGIE_CLI_VERSION}"
-          docker run --rm \
-            -v /dev:/dev \
-            -u root \
-            ${{ env.GH_REGISTRY }}/${{ github.repository }}:${{ needs.prepare.outputs.CONTAINER_TAG }} \
-            sh -c 'v=$(docker --version | grep -oP "\d+\.\d+\.\d+(-\d+)?"); echo "DOCKER_CLI_VERSION=${v}";'
-          if [[ "${{ matrix.platform_pair }}" == "linux-amd64" ]]; then
-            echo "AUGGIE_CLI_VERSION=${AUGGIE_CLI_VERSION}" >> ${GITHUB_OUTPUT}
-          fi
+            sh -c 'auggie --version | head -n 1 | awk "{print \$1}"')
+          echo "AUGGIE_CLI_VERSION=${AUGGIE_CLI_VERSION}" >> ${GITHUB_OUTPUT}
 
   scan:
     name: 'Scan image (${{ matrix.platform_pair }})'
