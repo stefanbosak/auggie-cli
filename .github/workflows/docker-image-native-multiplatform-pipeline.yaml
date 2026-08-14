@@ -18,7 +18,7 @@ on:
         description: 'AUGGIE_CLI_VERSION'
         required: false
         type: string
-        default: '1.1.0-prerelease.202608140921'
+        default: '1.2.0-prerelease.202608141223'
       CONTAINER_TAG:
         description: 'CONTAINER_TAG (text)'
         required: false
